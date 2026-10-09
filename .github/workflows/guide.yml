@@ -1,0 +1,124 @@
+name: LocalCloud integration test
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: '3.12'
+      - uses: ./.github/assert-cleanup
+      - name: Start LocalCloud
+        id: localcloud
+        uses: cloud-orbitor/setup-localcloud@v0.1.0
+        with:
+          services: gcs,pubsub,bigquery
+          project-id: localcloud-ci
+      - name: Install the SDK
+        run: python -m pip install google-cloud-bigquery==3.46.1
+      - name: Verify a local query
+        run: |
+          python - <<'PY'
+          import os
+          from google.auth.credentials import AnonymousCredentials
+          from google.cloud import bigquery
+
+          client = bigquery.Client(
+              project=os.environ['GOOGLE_CLOUD_PROJECT'],
+              credentials=AnonymousCredentials(),
+              client_options={'api_endpoint': os.environ['BIGQUERY_EMULATOR_HOST']},
+          )
+          try:
+              rows = list(client.query('SELECT 1 AS ok', timeout=30).result(timeout=30))
+              assert rows[0].ok == 1
+              print('LocalCloud BigQuery query passed')
+          finally:
+              client.close()
+          PY
+      - name: Record resources for post-cleanup verification
+        if: always() && steps.localcloud.outputs.container-id != ''
+        env:
+          LOCALCLOUD_CONTAINER_ID: ${{ steps.localcloud.outputs.container-id }}
+        run: node .github/check-cleanup.mjs
+  direct-image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      localcloud:
+        image: agentcloud/localcloud@sha256:88e85b86b294e1e4f71b8c63ec43de79d170946ff39556f0e2709f66aa0d368c
+        env:
+          LOCALCLOUD_SERVICES: gcs,pubsub,bigquery
+          LOCALCLOUD_PROJECT: localcloud-ci
+          LOCALCLOUD_TELEMETRY: 'false'
+          LOCALCLOUD_DOCKER_ACCESS: 'false'
+        ports:
+          - 5380:5380
+          - 5382:5382
+          - 5383:5383
+          - 5388:5388
+        options: --memory 4g
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Prepare LocalCloud directly
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import time
+          import urllib.error
+          import urllib.parse
+          import urllib.request
+      
+          gateway = 'http://127.0.0.1:5380'
+          project = 'localcloud-ci'
+          selected = {'gcs', 'pubsub', 'bigquery'}
+          deadline = time.monotonic() + 120
+      
+          def request(path, body=None):
+              data = json.dumps(body).encode() if body is not None else None
+              req = urllib.request.Request(gateway + path, data=data,
+                                           headers={'Content-Type': 'application/json'})
+              with urllib.request.urlopen(req, timeout=5) as response:
+                  return json.load(response)
+      
+          while True:
+              try:
+                  ready = request('/readiness?services=' + ','.join(sorted(selected)))
+                  available = {s['service_id'] for s in ready.get('services', []) if s.get('ready') is True}
+                  if ready.get('ready') is True and selected <= available:
+                      break
+              except urllib.error.HTTPError as error:
+                  if error.code != 503:
+                      raise
+              except (urllib.error.URLError, TimeoutError):
+                  pass
+              if time.monotonic() >= deadline:
+                  raise SystemExit('Selected LocalCloud services did not become ready')
+              time.sleep(1)
+      
+          if not any(p['project_id'] == project for p in request('/projects')):
+              request('/projects', {'project_id': project, 'display_name': project})
+          values = request('/env?format=json&project=' + project)
+          ports = {'STORAGE_EMULATOR_HOST': 5382, 'PUBSUB_EMULATOR_HOST': 5383,
+                   'BIGQUERY_EMULATOR_HOST': 5388}
+          assert values['GOOGLE_CLOUD_PROJECT'] == project
+          with open(os.environ['GITHUB_ENV'], 'a') as output:
+              for key in ['GOOGLE_CLOUD_PROJECT', *ports]:
+                  value = values[key]
+                  assert isinstance(value, str) and not any(c in value for c in '\r\n\0')
+                  if key in ports:
+                      target = urllib.parse.urlsplit(value if '://' in value else 'http://' + value)
+                      assert target.scheme == 'http' and target.hostname in {'localhost', '127.0.0.1'}
+                      assert not target.username and not target.password and target.port == ports[key]
+                  output.write(f'{key}={value}\n')
+          PY
+      - run: python -m pip install -r examples/requirements.txt
+      - run: python examples/python-smoke.py

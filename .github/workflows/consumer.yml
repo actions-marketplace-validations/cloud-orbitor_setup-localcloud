@@ -14,7 +14,9 @@ jobs:
           python-version: '3.12'
       - uses: ./.github/assert-cleanup
       - id: cloud
-        uses: cloud-orbitor/setup-localcloud@5c22a985426ff56aebb2d11c09744eccea307444
+        uses: cloud-orbitor/setup-localcloud@de6d236db036be4c8b96879392d22a1feb5047c6 # v0.1.0
+        with:
+          services: gcs,pubsub,bigquery
       - run: pip install -r examples/requirements.txt
       - run: python examples/python-smoke.py
       - name: Record owned resources for automatic post verification

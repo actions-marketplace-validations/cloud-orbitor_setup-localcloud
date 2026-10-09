@@ -1,6 +1,6 @@
 # Release evidence
 
-## Current release candidate 0.1.1
+## Unreleased changes — publication on hold
 
 The selected/default profile is now `gcs,pubsub,bigquery`; Firestore is excluded from current examples and qualification. The pinned 0.1.5 image passed local ARM64 fresh action startup, generated endpoints, Storage object readback, Pub/Sub message readback, BigQuery dataset/table creation, row insertion, SQL readback, and automatic container/anonymous-volume cleanup. Python BigQuery 3.46.1 uses the generated endpoint through ClientOptions with AnonymousCredentials. Ten Node 24 tests pass. [Hosted qualification 37989290869](https://github.com/cloud-orbitor/setup-localcloud/actions/runs/37989290869) and [independent corrected-SHA consumer 37989291848](https://github.com/cloud-orbitor/setup-localcloud/actions/runs/37989291848) both passed on Ubuntu 24.04 AMD64. The consumer verified all three SDK readbacks and actual automatic post-hook removal of the container and anonymous volume. Corrected code SHA: `5c22a985426ff56aebb2d11c09744eccea307444`.
 
@@ -26,4 +26,4 @@ The qualification used Python 3.12 with Storage 3.6.0, Pub/Sub 2.33.0 and Firest
 
 [v0.1.0 is publicly released](https://github.com/cloud-orbitor/setup-localcloud/releases/tag/v0.1.0), pinned to commit `de6d236db036be4c8b96879392d22a1feb5047c6`. [Release-tag consumer run 37982317639](https://github.com/cloud-orbitor/setup-localcloud/actions/runs/37982317639) passed all three SDK readbacks and actual automatic post cleanup using `cloud-orbitor/setup-localcloud@v0.1.0`.
 
-A repository release is separate from Marketplace publication. The Marketplace checkbox remains disabled until the cloud-orbitor owner accepts GitHub Marketplace Developer Agreement v2.4. That acceptance is awaiting explicit human confirmation; no Marketplace listing is claimed yet.
+A repository release is separate from Marketplace publication. The owner completed the agreement and account requirements, and [Setup LocalCloud is listed in Marketplace](https://github.com/marketplace/actions/setup-localcloud) at v0.1.0. The v0.1.1 draft remains unpublished while the [consolidated release backlog](https://github.com/cloud-orbitor/setup-localcloud/issues/5) is reviewed. Service selection through the `services` input does not require another action release.
