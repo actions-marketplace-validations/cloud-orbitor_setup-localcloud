@@ -57,7 +57,7 @@ jobs:
       localcloud:
         image: agentcloud/localcloud@sha256:88e85b86b294e1e4f71b8c63ec43de79d170946ff39556f0e2709f66aa0d368c
         env:
-          LOCALCLOUD_SERVICES: gcs,pubsub,firestore
+          LOCALCLOUD_SERVICES: gcs,pubsub,bigquery
           LOCALCLOUD_PROJECT: native-ci
           LOCALCLOUD_TELEMETRY: 'false'
           LOCALCLOUD_DOCKER_ACCESS: 'false'
@@ -65,7 +65,7 @@ jobs:
           - 5380:5380
           - 5382:5382
           - 5383:5383
-          - 5384:5384
+          - 5388:5388
         options: --memory 4g
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -80,7 +80,7 @@ jobs:
       - run: python examples/python-smoke.py
       - name: Existing runtime was preserved
         if: always()
-        run: curl --fail --silent 'http://127.0.0.1:5380/readiness?services=gcs,pubsub,firestore'
+        run: curl --fail --silent 'http://127.0.0.1:5380/readiness?services=gcs,pubsub,bigquery'
   rejected-service:
     needs: unit
     runs-on: ubuntu-24.04

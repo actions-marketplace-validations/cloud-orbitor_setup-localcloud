@@ -10,7 +10,7 @@ const CONTEXT_KEYS = new Set(['GOOGLE_CLOUD_PROJECT', 'GCLOUD_PROJECT', 'GOOGLE_
 
 export function options(env = process.env) {
   const get = (name, fallback = '') => env[`INPUT_${name.toUpperCase()}`]?.trim() || fallback;
-  const services = [...new Set(get('services', 'gcs,pubsub,firestore').split(',').map(s => s.trim()))];
+  const services = [...new Set(get('services', 'gcs,pubsub,bigquery').split(',').map(s => s.trim()))];
   if (!services.length || services.length > 40 || services.some(s => !/^[a-z][a-z0-9]*$/.test(s))) throw new Error('services must be comma-separated LocalCloud service IDs');
   const project = get('project-id', 'localcloud-ci');
   if (!/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(project)) throw new Error('project-id must be a 6–30 character Google Cloud project ID');

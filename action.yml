@@ -1,4 +1,4 @@
-name: Setup LocalCloud
+name: LocalCloud for GitHub Actions
 description: Start a LocalCloud Docker environment and configure supported Google Cloud SDKs for integration tests.
 author: LocalCloud
 branding:
@@ -9,8 +9,8 @@ inputs:
     description: LocalCloud image pinned to an immutable digest. Used when starting a container.
     default: agentcloud/localcloud@sha256:88e85b86b294e1e4f71b8c63ec43de79d170946ff39556f0e2709f66aa0d368c
   services:
-    description: Comma-separated service IDs. The initial qualified profile is gcs,pubsub,firestore.
-    default: gcs,pubsub,firestore
+    description: Comma-separated service IDs. The release profile is gcs,pubsub,bigquery.
+    default: gcs,pubsub,bigquery
   project-id:
     description: Local Google Cloud project to create or select.
     default: localcloud-ci

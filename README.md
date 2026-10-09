@@ -1,8 +1,8 @@
-# Setup LocalCloud
+# LocalCloud for GitHub Actions
 
 Run Google Cloud integration tests against a LocalCloud Docker environment in GitHub Actions. This action starts the image directly, waits for the selected services, prepares a local project, and exports SDK settings to subsequent steps. It does not install the LocalCloud CLI or require Google Cloud credentials.
 
-The first release targets Ubuntu 24.04 x64 VM runners and Python Cloud Storage, Pub/Sub and Firestore workflows. Service compatibility is operation-specific; tests against an emulator do not replace final Google Cloud validation.
+The first release targets Ubuntu 24.04 x64 VM runners and Python Cloud Storage, Pub/Sub and BigQuery workflows. Service compatibility is operation-specific; tests against an emulator do not replace final Google Cloud validation.
 
 ## Quickstart
 
@@ -17,7 +17,7 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.12'
-      - uses: cloud-orbitor/setup-localcloud@v0.1.0
+      - uses: cloud-orbitor/setup-localcloud@v0.1.1
       - run: pip install -r requirements.txt
       - run: python -m pytest
 ```
@@ -33,7 +33,7 @@ services:
   localcloud:
     image: agentcloud/localcloud@sha256:88e85b86b294e1e4f71b8c63ec43de79d170946ff39556f0e2709f66aa0d368c
     env:
-      LOCALCLOUD_SERVICES: gcs,pubsub,firestore
+      LOCALCLOUD_SERVICES: gcs,pubsub,bigquery
       LOCALCLOUD_PROJECT: localcloud-ci
       LOCALCLOUD_TELEMETRY: 'false'
       LOCALCLOUD_DOCKER_ACCESS: 'false'
@@ -41,10 +41,10 @@ services:
       - 5380:5380
       - 5382:5382
       - 5383:5383
-      - 5384:5384
+      - 5388:5388
     options: --memory 4g
 steps:
-  - uses: cloud-orbitor/setup-localcloud@v0.1.0
+  - uses: cloud-orbitor/setup-localcloud@v0.1.1
     with:
       runtime-url: http://127.0.0.1:5380
 ```
@@ -58,7 +58,7 @@ For plain Docker, follow the [runtime image instructions](https://local.cloud/do
 | Input | Default | Meaning |
 | --- | --- | --- |
 | `image` | Public LocalCloud 0.1.5 image digest | Immutable runtime image; used only when this action starts Docker |
-| `services` | `gcs,pubsub,firestore` | Exact enabled-service list |
+| `services` | `gcs,pubsub,bigquery` | Exact enabled-service list |
 | `project-id` | `localcloud-ci` | Local project to create/select |
 | `runtime-url` | empty | Existing `http://host:5380` gateway with canonical service ports; no Docker lifecycle changes |
 | `timeout` | `120` | Readiness timeout in seconds, from 1 to 1800 |
@@ -67,12 +67,32 @@ Outputs are `runtime-url`, `container-id` (empty for an existing runtime), and `
 
 The action exports the runtime's supported emulator/project/local-auth variables to subsequent steps in the same job. Automatic Docker mode publishes image TCP listeners on unique loopback ports and rewrites SDK endpoints accordingly. Existing-runtime mode requires canonical ports; custom external host-port mappings are not supported by that mode yet.
 
+## BigQuery client configuration
+
+The action exports `BIGQUERY_EMULATOR_HOST`. Google's Python BigQuery client needs that endpoint and anonymous local credentials explicitly; it does not automatically consume this emulator variable:
+
+```python
+import os
+from google.cloud import bigquery
+from google.api_core.client_options import ClientOptions
+from google.auth.credentials import AnonymousCredentials
+
+client = bigquery.Client(
+    project=os.environ['GOOGLE_CLOUD_PROJECT'],
+    credentials=AnonymousCredentials(),
+    client_options=ClientOptions(api_endpoint=os.environ['BIGQUERY_EMULATOR_HOST']),
+)
+assert list(client.query('SELECT 1 AS ok').result())[0].ok == 1
+```
+
+The example checks dataset/table creation, row insertion, SQL readback and cleanup. BigQuery Storage API and other advanced operations are outside this release's qualification.
+
 ## Isolation and limits
 
 - Each automatic setup creates its own container and anonymous data volume. The post hook verifies its ownership label and removes only those resources. Existing runtimes and developer volumes are retained.
 - The image receives a 4 GiB limit. Docker and adequate runner memory/disk must be available; slim, hosted macOS and hosted Windows runners are outside this release's Docker support.
 - Docker socket access is disabled in automatic mode. Docker-backed compute/cluster workloads need a separately configured and qualified runtime.
-- Other service IDs can be evaluated, but only the documented Python profile is release-qualified. Unsupported services, env formats or unready runtimes fail setup.
+- The default and tested profile is Cloud Storage, Pub/Sub and BigQuery. Firestore is excluded from this release profile. Other service IDs can be evaluated, but only the documented Python profile is release-qualified. Unsupported services, env formats or unready runtimes fail setup.
 - Emulator environment support varies by language. Java Pub/Sub requires explicit transport/credentials setup; there is no universal zero-code guarantee for all SDKs.
 - This action validates generated local targets; it is not an egress firewall and cannot stop application code using hardcoded Google endpoints. Never supply production credentials for these local tests.
 - The post hook is best effort if the runner disappears. Persistent/self-hosted agents need an ownership-scoped orphan policy.

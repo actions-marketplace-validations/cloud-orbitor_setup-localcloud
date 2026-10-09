@@ -1,7 +1,9 @@
 """Real Google SDK readback against the SDK environment exported by the action."""
 import os
 import uuid
-from google.cloud import storage, pubsub_v1, firestore
+from google.cloud import storage, pubsub_v1, bigquery
+from google.api_core.client_options import ClientOptions
+from google.auth.credentials import AnonymousCredentials
 
 project = os.environ['GOOGLE_CLOUD_PROJECT']
 suffix = uuid.uuid4().hex[:12]
@@ -32,10 +34,23 @@ subscriber.close()
 publisher.stop()
 print('Pub/Sub: publish, pull, acknowledgement and cleanup passed')
 
-db = firestore.Client(project=project)
-document = db.collection('qualification').document(suffix)
-document.set({'message': payload.decode()})
-assert document.get().to_dict()['message'] == payload.decode()
-document.delete()
-db.close()
-print('Firestore: write, readback and cleanup passed')
+# BigQuery's SDK requires an explicit local endpoint and anonymous credentials.
+bq = bigquery.Client(
+    project=project,
+    credentials=AnonymousCredentials(),
+    client_options=ClientOptions(api_endpoint=os.environ['BIGQUERY_EMULATOR_HOST']),
+)
+rows = list(bq.query('SELECT 1 AS ok', timeout=20).result(timeout=20))
+assert rows[0].ok == 1
+dataset = f'{project}.ci_{suffix}'
+bq.create_dataset(bigquery.Dataset(dataset), timeout=20)
+table = bq.create_table(
+    bigquery.Table(f'{dataset}.messages', schema=[bigquery.SchemaField('message', 'STRING')]),
+    timeout=20,
+)
+assert not bq.insert_rows_json(table, [{'message': payload.decode()}], timeout=20)
+rows = list(bq.query(f'SELECT message FROM `{project}.ci_{suffix}.messages`', timeout=20).result(timeout=20))
+assert [row.message for row in rows] == [payload.decode()]
+bq.delete_dataset(dataset, delete_contents=True, timeout=20)
+bq.close()
+print('BigQuery: dataset/table creation, row insertion, SQL readback and cleanup passed')

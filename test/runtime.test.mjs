@@ -10,6 +10,7 @@ import { options, environment, configure, cleanup, startRuntime, githubFile, DEF
 test('invalid inputs fail before Docker or HTTP', () => {
   for (const env of [ {'INPUT_IMAGE':'agentcloud/localcloud:latest'}, {'INPUT_SERVICES':'gcs,;touch /tmp/x'}, {'INPUT_PROJECT-ID':'bad\nproject'}, {'INPUT_TIMEOUT':'Infinity'}, {'INPUT_RUNTIME-URL':'https://storage.googleapis.com'}, {'INPUT_RUNTIME-URL':'http://user:secret@localhost:5380'} ]) assert.throws(() => options(env));
   assert.equal(options({}).image, DEFAULT_IMAGE);
+  assert.deepEqual(options({}).services,['gcs','pubsub','bigquery']);
 });
 
 test('SDK HTTP and gRPC addresses use actual published ports', () => {
