@@ -16,4 +16,6 @@ The qualification used Python 3.12 with Storage 3.6.0, Pub/Sub 2.33.0 and Firest
 
 [Independent public-SHA consumer run 37981540971](https://github.com/cloud-orbitor/setup-localcloud/actions/runs/37981540971) passed Cloud Storage, Pub/Sub and Firestore readback using `cloud-orbitor/setup-localcloud@c2add0415e1b2bfd3dc0e9a5858f35c8951222f0`. A checker registered before setup ran after the setup post hook and verified that the actual container and anonymous volume no longer existed. This verifies automatic cleanup, rather than only calling the cleanup function in a test step.
 
-Tag consumption and the public Marketplace page are recorded after their respective checks. A repository release is separate from Marketplace publication. GitHub requires the cloud-orbitor owner to accept its Marketplace Developer Agreement before listing.
+[v0.1.0 is publicly released](https://github.com/cloud-orbitor/setup-localcloud/releases/tag/v0.1.0), pinned to commit `de6d236db036be4c8b96879392d22a1feb5047c6`. [Release-tag consumer run 37982317639](https://github.com/cloud-orbitor/setup-localcloud/actions/runs/37982317639) passed all three SDK readbacks and actual automatic post cleanup using `cloud-orbitor/setup-localcloud@v0.1.0`.
+
+A repository release is separate from Marketplace publication. The Marketplace checkbox remains disabled until the cloud-orbitor owner accepts GitHub Marketplace Developer Agreement v2.4. That acceptance is awaiting explicit human confirmation; no Marketplace listing is claimed yet.
