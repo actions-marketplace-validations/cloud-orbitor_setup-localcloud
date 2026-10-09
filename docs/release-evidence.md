@@ -2,7 +2,7 @@
 
 ## Current release candidate 0.1.1
 
-The selected/default profile is now `gcs,pubsub,bigquery`; Firestore is excluded from current examples and qualification. The pinned 0.1.5 image passed local ARM64 fresh action startup, generated endpoints, Storage object readback, Pub/Sub message readback, BigQuery dataset/table creation, row insertion, SQL readback, and automatic container/anonymous-volume cleanup. Python BigQuery 3.46.1 uses the generated endpoint through ClientOptions with AnonymousCredentials. Ten Node 24 tests pass. Hosted and public-consumer results for this corrected profile will be recorded after completion.
+The selected/default profile is now `gcs,pubsub,bigquery`; Firestore is excluded from current examples and qualification. The pinned 0.1.5 image passed local ARM64 fresh action startup, generated endpoints, Storage object readback, Pub/Sub message readback, BigQuery dataset/table creation, row insertion, SQL readback, and automatic container/anonymous-volume cleanup. Python BigQuery 3.46.1 uses the generated endpoint through ClientOptions with AnonymousCredentials. Ten Node 24 tests pass. [Hosted qualification 37989290869](https://github.com/cloud-orbitor/setup-localcloud/actions/runs/37989290869) and [independent corrected-SHA consumer 37989291848](https://github.com/cloud-orbitor/setup-localcloud/actions/runs/37989291848) both passed on Ubuntu 24.04 AMD64. The consumer verified all three SDK readbacks and actual automatic post-hook removal of the container and anonymous volume. Corrected code SHA: `5c22a985426ff56aebb2d11c09744eccea307444`.
 
 ## Historical release 0.1.0
 
