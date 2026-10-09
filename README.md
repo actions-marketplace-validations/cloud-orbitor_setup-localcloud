@@ -2,7 +2,7 @@
 
 Run Google Cloud application tests and AI-agent checks against the LocalCloud Docker image. The setup action starts the image, waits for your selected services, prepares a local project, exports SDK settings, and removes its own container after the job. The LocalCloud CLI is optional.
 
-**[Read the complete GitHub workflows user guide](docs/github-actions.md)** for the setup action, native GitHub service containers, Docker-only setup, SDK configuration, AI agents, inputs, troubleshooting, and cleanup. This guide is built from the LocalCloud site source; website publication is awaiting its site pull request. The live [service catalog](https://local.cloud/services/) and [compatibility matrix](https://local.cloud/compatibility/) provide detailed product capabilities.
+**[Read the complete GitHub workflows user guide](docs/github-actions.md)** for the setup action, native GitHub service containers, Docker-only setup, SDK configuration, AI agents, inputs, troubleshooting, and cleanup. This guide is built from the LocalCloud site source; website publication awaits [site PR #5](https://github.com/LocalGCloud/LocalGCloud.github.io/pull/5). The live [service catalog](https://local.cloud/services/) and [compatibility matrix](https://local.cloud/compatibility/) provide detailed product capabilities.
 
 ## Quick start
 
@@ -104,12 +104,13 @@ This table is copied from the site-rendered guide. Follow each service guide for
 - Dataproc, Cloud Run and GKE execution need additional runtime dependencies. Automatic mode currently disables Docker access inside LocalCloud; use a configured runtime and check the relevant service guide.
 - Agents launched on the same runner inherit the SDK environment. MCP attachment is a separate integration; the action does not install or configure an MCP client.
 - Normal post cleanup removes only the action-owned container and anonymous volume. Runner-loss recovery and container-job networking need their own checks.
+- Shared runners can hit Docker Hub's anonymous pull limit before startup. The guide covers [registry authentication](docs/github-actions.md#docker-hub-pull-limits); distribution reliability is tracked in [issue #6](https://github.com/cloud-orbitor/setup-localcloud/issues/6).
 
 ## Licensing and support
 
 The adapter is MIT-licensed. The separately distributed image is governed by the [LocalCloud license](https://local.cloud/license/). Automatic mode disables runtime telemetry; see [privacy](https://local.cloud/docs/privacy/). Validate production-sensitive behavior against real Google Cloud before deployment.
 
-Report integration problems in [this repository's issues](https://github.com/cloud-orbitor/setup-localcloud/issues), with the action version, image digest, selected services, SDK versions, and sanitized errors. The [five grouped backlog issues](https://github.com/cloud-orbitor/setup-localcloud/issues) are being collected for one consolidated update; v0.1.1 remains an unpublished draft.
+Report integration problems in [this repository's issues](https://github.com/cloud-orbitor/setup-localcloud/issues), with the action version, image digest, selected services, SDK versions, and sanitized errors. The [grouped integration backlog](https://github.com/cloud-orbitor/setup-localcloud/issues) is being collected for one consolidated update; v0.1.1 remains an unpublished draft.
 
 ## Development and checks
 

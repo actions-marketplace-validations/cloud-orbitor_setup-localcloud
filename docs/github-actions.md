@@ -2,7 +2,7 @@
 
 > Run Google Cloud integration tests and AI-agent checks in GitHub workflows using the LocalCloud Docker image, with or without the setup action.
 >
-> Built from the LocalCloud site's GitHub Actions guide. Website publication is awaiting the site pull request; this repository copy is available now.
+> Built from the LocalCloud site's [GitHub Actions guide source](https://github.com/LocalGCloud/LocalGCloud.github.io/pull/5). Website publication awaits that pull request; this repository copy is available now.
 
 Run your Google Cloud application tests against a LocalCloud Docker environment in a GitHub Actions job. Your application uses standard Google Cloud SDKs with local endpoint settings. Use this for pull-request checks, continuous integration, staging-like application tests, or an AI coding agent that needs a cloud environment while it works.
 
@@ -300,8 +300,33 @@ Running your application directly inside the LocalCloud image is another Docker 
 | Native service connects but SDK calls fail | Publish the selected service ports and keep canonical ports when using `runtime-url`. |
 | Agent runs in another job or container | Export settings again for that environment and verify its network route; `GITHUB_ENV` is job-scoped. |
 | Self-hosted runner loses a job | Inspect action-owned containers and volumes. Normal post cleanup is best effort when a runner disappears; do not delete unrelated developer resources. |
+| Docker pull reports `toomanyrequests` | The registry rejected the pull before LocalCloud started. Authenticate to Docker Hub as described below, connect to an already-running runtime through `runtime-url`, or select a compatible registry image through `image`. |
 
 Automatic mode creates an isolated container and anonymous data volume. Logical project names in a shared existing runtime are not a hard isolation boundary. Parallel jobs should use independent runtimes unless shared state is intentional.
+
+### Docker Hub pull limits
+
+Public Docker Hub images can hit anonymous pull limits on shared CI runners. If this happens, store your Docker Hub username and access token as repository secrets named `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN`. These are image-registry credentials, separate from Google Cloud credentials.
+
+For action-managed Docker, place this step before Setup LocalCloud:
+
+```yaml
+- name: Authenticate image pulls
+  env:
+    DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+    DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+  run: printf '%s' "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
+```
+
+Native service containers start before workflow steps, so a login step is too late for their initial pull. Add this mapping to `jobs.<job>.services.localcloud`, alongside `image`:
+
+```yaml
+credentials:
+  username: ${{ secrets.DOCKERHUB_USERNAME }}
+  password: ${{ secrets.DOCKERHUB_TOKEN }}
+```
+
+GitHub documents [service-container registry authentication](https://docs.github.com/en/actions/tutorials/use-containerized-services/use-docker-service-containers#authenticating-with-image-registries). A registry mirror and reliable anonymous CI distribution are being gathered in the [action backlog](https://github.com/cloud-orbitor/setup-localcloud/issues).
 
 ## Tested workflows and support
 
@@ -310,4 +335,3 @@ The action’s [evidence ledger](https://github.com/cloud-orbitor/setup-localclo
 The action adapter is MIT-licensed. The separately distributed runtime is governed by the [LocalCloud license](https://local.cloud/license/). Automatic mode disables runtime telemetry; existing-runtime preferences remain with its owner. See [privacy and outbound behavior](https://local.cloud/docs/privacy/). Validate production-sensitive behavior against real Google Cloud before deployment.
 
 Report integration issues in [cloud-orbitor/setup-localcloud](https://github.com/cloud-orbitor/setup-localcloud/issues), including the workflow, action commit, image digest, selected services, SDK versions, and sanitized error output. Do not include credentials.
-
