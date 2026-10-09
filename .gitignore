@@ -3,3 +3,4 @@ node_modules/
 .local-test/
 __pycache__/
 docs/superpowers/plans/
+.localcloud-cleanup-proof.json

@@ -1,0 +1,7 @@
+name: Assert test runtime cleanup
+description: Verify setup-localcloud post cleanup after its post hook runs.
+runs:
+  using: node24
+  main: register.mjs
+  post: verify.mjs
+  post-if: always()

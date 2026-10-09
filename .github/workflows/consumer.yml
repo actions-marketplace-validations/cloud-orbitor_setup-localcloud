@@ -12,6 +12,13 @@ jobs:
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: '3.12'
-      - uses: cloud-orbitor/setup-localcloud@c2add0415e1b2bfd3dc0e9a5858f35c8951222f0
+      - uses: ./.github/assert-cleanup
+      - id: cloud
+        uses: cloud-orbitor/setup-localcloud@c2add0415e1b2bfd3dc0e9a5858f35c8951222f0
       - run: pip install -r examples/requirements.txt
       - run: python examples/python-smoke.py
+      - name: Record owned resources for automatic post verification
+        if: always() && steps.cloud.outputs.container-id != ''
+        env:
+          LOCALCLOUD_CONTAINER_ID: ${{ steps.cloud.outputs.container-id }}
+        run: node .github/check-cleanup.mjs
