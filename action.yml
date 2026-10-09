@@ -1,0 +1,33 @@
+name: Setup LocalCloud
+description: Start a LocalCloud Docker environment and configure supported Google Cloud SDKs for integration tests.
+author: LocalCloud
+branding:
+  icon: cloud
+  color: blue
+inputs:
+  image:
+    description: LocalCloud image pinned to an immutable digest. Used when starting a container.
+    default: agentcloud/localcloud@sha256:88e85b86b294e1e4f71b8c63ec43de79d170946ff39556f0e2709f66aa0d368c
+  services:
+    description: Comma-separated service IDs. The initial qualified profile is gcs,pubsub,firestore.
+    default: gcs,pubsub,firestore
+  project-id:
+    description: Local Google Cloud project to create or select.
+    default: localcloud-ci
+  runtime-url:
+    description: Existing http://host:5380 gateway with canonical service ports. Leave empty for automatic Docker port mapping.
+  timeout:
+    description: Maximum seconds to wait for selected-service readiness.
+    default: '120'
+outputs:
+  runtime-url:
+    description: Reachable LocalCloud gateway URL.
+  container-id:
+    description: Action-owned container ID, or empty for an existing runtime.
+  project-id:
+    description: Selected local project ID.
+runs:
+  using: node24
+  main: src/main.mjs
+  post: src/post.mjs
+  post-if: always()

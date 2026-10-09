@@ -1,0 +1,5 @@
+node_modules/
+.venv/
+.local-test/
+__pycache__/
+docs/superpowers/plans/

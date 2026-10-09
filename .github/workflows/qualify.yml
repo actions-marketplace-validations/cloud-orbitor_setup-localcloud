@@ -1,0 +1,84 @@
+name: Qualify LocalCloud action
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - run: node --test test/runtime.test.mjs
+  managed:
+    needs: unit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - id: cloud
+        uses: ./
+      - run: pip install -r examples/requirements.txt
+      - run: python examples/python-smoke.py
+      - name: Verify owned post cleanup
+        if: always() && steps.cloud.outputs.container-id != ''
+        env:
+          LOCALCLOUD_CONTAINER_ID: ${{ steps.cloud.outputs.container-id }}
+        run: node .github/check-cleanup.mjs
+  native:
+    needs: unit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      localcloud:
+        image: agentcloud/localcloud@sha256:88e85b86b294e1e4f71b8c63ec43de79d170946ff39556f0e2709f66aa0d368c
+        env:
+          LOCALCLOUD_SERVICES: gcs,pubsub,firestore
+          LOCALCLOUD_PROJECT: native-ci
+          LOCALCLOUD_TELEMETRY: 'false'
+          LOCALCLOUD_DOCKER_ACCESS: 'false'
+        ports:
+          - 5380:5380
+          - 5382:5382
+          - 5383:5383
+          - 5384:5384
+        options: --memory 4g
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - uses: ./
+        with:
+          runtime-url: http://127.0.0.1:5380
+          project-id: native-ci
+      - run: pip install -r examples/requirements.txt
+      - run: python examples/python-smoke.py
+      - name: Existing runtime was preserved
+        if: always()
+        run: curl --fail --silent 'http://127.0.0.1:5380/readiness?services=gcs,pubsub,firestore'
+  rejected-service:
+    needs: unit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - id: rejected
+        continue-on-error: true
+        uses: ./
+        with:
+          services: unknownservice
+          timeout: '20'
+      - name: Invalid setup failed and its container was removed
+        env:
+          ACTUAL_OUTCOME: ${{ steps.rejected.outcome }}
+        run: |
+          test "$ACTUAL_OUTCOME" = failure
+          test -z "$(docker ps -aq --filter label=cloud.local.setup-localcloud.owner)"
